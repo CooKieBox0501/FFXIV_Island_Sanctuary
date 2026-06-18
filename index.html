@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>無人島牧場管家 · FFXIV Island Sanctuary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@300;400;600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sea-deep:#0b3a4a; --sea:#1b6e8c; --lagoon:#2da0a8;
+  --paper:#f6f2e9; --card:#fffdf7; --sand:#efe6d2;
+  --coral:#e9694a; --coral-deep:#c8512f;
+  --leaf:#3f9d5b; --leaf-soft:#e7f3e9;
+  --ink:#15303a; --muted:#5f727a; --line:#e3dccb;
+  --shadow:0 1px 2px rgba(11,58,74,.05),0 8px 24px -12px rgba(11,58,74,.18);
+  --r:16px;
+  --mono:'Chivo Mono',ui-monospace,monospace;
+  --sans:'Noto Sans TC',system-ui,-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--sans); color:var(--ink); background:var(--paper);
+  background-image:radial-gradient(120% 60% at 50% -10%, #eaf2f0 0%, transparent 55%);
+  line-height:1.55; -webkit-font-smoothing:antialiased; padding-bottom:64px;
+}
+.wrap{max-width:880px;margin:0 auto;padding:0 16px}
+a{color:var(--sea)}
+
+/* ---------- Header ---------- */
+header.top{padding:26px 0 8px;text-align:center}
+.brand{display:inline-flex;align-items:center;gap:10px}
+.brand .mark{width:34px;height:34px;flex:none}
+.brand h1{font-weight:900;font-size:1.5rem;letter-spacing:.5px;color:var(--sea-deep)}
+.tagline{color:var(--muted);font-size:.85rem;margin-top:4px}
+
+/* ---------- Tabs ---------- */
+nav.tabs{position:sticky;top:0;z-index:30;background:rgba(246,242,233,.92);
+  backdrop-filter:blur(8px);padding:12px 0 10px;margin-top:14px;border-bottom:1px solid var(--line)}
+nav.tabs .row{display:flex;gap:6px;background:var(--sand);padding:5px;border-radius:14px}
+nav.tabs button{flex:1;border:0;background:transparent;font-family:var(--sans);font-weight:700;
+  font-size:.92rem;color:var(--muted);padding:9px 6px;border-radius:10px;cursor:pointer;transition:.18s;white-space:nowrap}
+nav.tabs button.on{background:var(--card);color:var(--sea-deep);box-shadow:var(--shadow)}
+
+section.view{display:none;padding-top:18px}
+section.view.on{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ---------- Sky hero ---------- */
+.sky{position:relative;border-radius:22px;overflow:hidden;color:#fff;box-shadow:var(--shadow);
+  background:linear-gradient(160deg,#1b6e8c,#2da0a8);min-height:188px}
+.sky .layer{position:absolute;inset:0}
+.sky .sun{position:absolute;right:30px;top:24px;width:64px;height:64px;border-radius:50%;
+  background:radial-gradient(circle at 38% 38%,#fff6d8,#ffd66b 60%,#ffbb3d);box-shadow:0 0 50px 14px rgba(255,214,107,.55);transition:.6s}
+.sky .content{position:relative;padding:22px 24px;display:flex;flex-direction:column;height:100%}
+.sky .eorzea-label{font-size:.72rem;letter-spacing:2px;text-transform:uppercase;opacity:.85}
+.clock{font-family:var(--mono);font-weight:600;font-size:3.4rem;line-height:1;margin-top:2px;text-shadow:0 2px 12px rgba(0,0,0,.18)}
+.clock small{font-size:1rem;opacity:.8;margin-left:6px}
+.sky .wmeta{margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.wnow{display:flex;align-items:center;gap:12px}
+.wnow .wi{width:46px;height:46px;flex:none}
+.wnow .wt{font-weight:900;font-size:1.35rem;line-height:1.1}
+.wnow .ws{font-size:.78rem;opacity:.85}
+.realtime{font-family:var(--mono);font-size:.78rem;opacity:.85;text-align:right}
+.realtime b{font-weight:600}
+
+/* ---------- Forecast strip ---------- */
+.fc-title{display:flex;align-items:center;gap:8px;margin:22px 2px 10px;font-weight:700;color:var(--sea-deep)}
+.fc-title .hint{font-weight:400;font-size:.76rem;color:var(--muted)}
+.fc{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:thin}
+.fc .blk{flex:none;width:74px;background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:10px 8px;text-align:center;box-shadow:var(--shadow)}
+.fc .blk.cur{border-color:var(--lagoon);box-shadow:0 0 0 2px rgba(45,160,168,.25),var(--shadow)}
+.fc .blk.rare{border-color:var(--coral)}
+.fc .blk .et{font-family:var(--mono);font-size:.8rem;color:var(--muted)}
+.fc .blk .wi{width:30px;height:30px;margin:5px auto 3px}
+.fc .blk .wn{font-size:.74rem;font-weight:700}
+.fc .blk .rb{font-size:.62rem;color:var(--coral-deep);font-weight:700;margin-top:2px}
+
+/* ---------- Section heads ---------- */
+.sec-head{display:flex;align-items:baseline;gap:10px;margin:26px 2px 12px}
+.sec-head h2{font-size:1.15rem;font-weight:900;color:var(--sea-deep)}
+.sec-head .count{font-family:var(--mono);font-size:.82rem;color:var(--muted)}
+
+/* ---------- Animal cards ---------- */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(252px,1fr));gap:12px}
+.acard{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;
+  box-shadow:var(--shadow);display:flex;flex-direction:column;gap:9px;position:relative}
+.acard.live{border-color:var(--leaf);box-shadow:0 0 0 2px rgba(63,157,91,.16),var(--shadow)}
+.acard .head{display:flex;align-items:center;gap:8px}
+.acard .nm{font-weight:900;font-size:1.05rem;color:var(--ink)}
+.sz{font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:999px;color:#fff;flex:none}
+.sz.s{background:#5aa9c4}.sz.m{background:#e0a23c}.sz.l{background:#b5664a}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:600;
+  padding:3px 8px;border-radius:999px;background:var(--sand);color:var(--muted)}
+.tag.cave{background:#ece6f5;color:#6a52a3}
+.tag.w{background:#e8f1f6;color:var(--sea)}
+.tag.t{background:#fdeede;color:var(--coral-deep)}
+.tagrow{display:flex;flex-wrap:wrap;gap:6px}
+.mats{display:flex;flex-wrap:wrap;gap:6px}
+.mat{display:inline-flex;align-items:center;gap:5px;font-size:.78rem;font-weight:600;
+  padding:3px 9px 3px 6px;border-radius:999px;border:1px solid var(--line)}
+.mat .dot{width:9px;height:9px;border-radius:3px;flex:none}
+.acard .foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;
+  font-size:.78rem;color:var(--muted)}
+.loc{font-family:var(--mono);font-size:.74rem}
+.countdown{font-family:var(--mono);font-weight:600;font-size:.8rem}
+.countdown.live{color:var(--leaf)}
+.countdown.soon{color:var(--coral-deep)}
+.addbtn{border:1px solid var(--lagoon);background:#fff;color:var(--sea);font-family:var(--sans);
+  font-weight:700;font-size:.76rem;border-radius:9px;padding:5px 10px;cursor:pointer;transition:.15s}
+.addbtn:hover{background:var(--lagoon);color:#fff}
+.empty{text-align:center;color:var(--muted);padding:26px 12px;background:var(--card);
+  border:1px dashed var(--line);border-radius:var(--r);font-size:.9rem}
+
+/* ---------- Filters ---------- */
+.filters{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;
+  box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px;margin-bottom:16px}
+.search{display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--line);
+  border-radius:10px;padding:8px 12px}
+.search input{flex:1;border:0;background:transparent;font-family:var(--sans);font-size:.95rem;color:var(--ink);outline:none}
+.fgroup{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.fgroup .lbl{font-size:.74rem;font-weight:700;color:var(--muted);margin-right:2px}
+.chip{border:1px solid var(--line);background:var(--paper);color:var(--muted);font-family:var(--sans);
+  font-weight:600;font-size:.78rem;padding:5px 11px;border-radius:999px;cursor:pointer;transition:.15s}
+.chip.on{background:var(--sea-deep);color:#fff;border-color:var(--sea-deep)}
+.chip.mat-chip.on{color:#fff}
+
+/* ---------- Pasture ---------- */
+.pasture-top{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+@media(max-width:540px){.pasture-top{grid-template-columns:1fr}}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
+.stat .k{font-size:.74rem;color:var(--muted);font-weight:700;letter-spacing:.5px}
+.stat .v{font-family:var(--mono);font-weight:600;font-size:2.1rem;line-height:1.1;margin-top:4px;color:var(--sea-deep)}
+.stat .v small{font-size:1rem;color:var(--muted)}
+.slotbar{height:8px;background:var(--sand);border-radius:999px;margin-top:10px;overflow:hidden}
+.slotbar i{display:block;height:100%;background:linear-gradient(90deg,var(--lagoon),var(--sea));border-radius:999px;transition:.3s}
+.score-pill{display:inline-block;font-weight:900;padding:2px 10px;border-radius:999px;font-size:1.6rem;font-family:var(--mono)}
+
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);margin-bottom:16px}
+.panel h3{font-size:1rem;font-weight:900;color:var(--sea-deep);margin-bottom:4px}
+.panel .sub{font-size:.78rem;color:var(--muted);margin-bottom:14px}
+.balrow{display:grid;grid-template-columns:54px 1fr 30px;align-items:center;gap:10px;margin-bottom:9px}
+.balrow .ml{display:flex;align-items:center;gap:6px;font-size:.82rem;font-weight:700}
+.balrow .ml .dot{width:11px;height:11px;border-radius:3px}
+.track{position:relative;height:18px;background:var(--paper);border-radius:999px;overflow:hidden}
+.track i{position:absolute;left:0;top:0;bottom:0;border-radius:999px;transition:.35s;min-width:2px}
+.track .target{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);opacity:.35}
+.balrow .cv{font-family:var(--mono);font-weight:600;text-align:right;font-size:.9rem}
+.balrow.low .cv{color:var(--coral-deep)}
+.balrow.high .cv{color:var(--sea)}
+
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.btn{border:0;font-family:var(--sans);font-weight:700;font-size:.85rem;padding:10px 16px;border-radius:11px;cursor:pointer;transition:.15s}
+.btn.primary{background:var(--coral);color:#fff;box-shadow:var(--shadow)}
+.btn.primary:hover{background:var(--coral-deep)}
+.btn.ghost{background:var(--card);color:var(--sea-deep);border:1px solid var(--line)}
+.btn.ghost:hover{border-color:var(--sea)}
+
+.plist{display:flex;flex-wrap:wrap;gap:8px}
+.pchip{display:inline-flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
+  border-radius:11px;padding:7px 8px 7px 12px;box-shadow:var(--shadow)}
+.pchip .pn{font-weight:700;font-size:.85rem}
+.pchip .qty{font-family:var(--mono);font-size:.74rem;color:var(--muted);background:var(--sand);padding:1px 7px;border-radius:999px}
+.pchip .rm{border:0;background:#f4e4df;color:var(--coral-deep);width:22px;height:22px;border-radius:7px;
+  font-weight:900;cursor:pointer;line-height:1;font-size:1rem}
+.pchip .rm:hover{background:var(--coral);color:#fff}
+
+.picker{max-height:340px;overflow-y:auto;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
+.pgrp{padding:6px 12px;font-size:.72rem;font-weight:900;letter-spacing:1px;color:var(--muted);
+  background:var(--sand);position:sticky;top:0}
+.prow{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--line)}
+.prow:last-child{border-bottom:0}
+.prow .pn{font-weight:700;font-size:.88rem;flex:1}
+.prow .pmats{display:flex;gap:4px}
+.prow .pdot{width:10px;height:10px;border-radius:3px}
+.prow .pq{font-family:var(--mono);font-size:.8rem;color:var(--muted);min-width:20px;text-align:center}
+.prow .pbtn{border:1px solid var(--lagoon);background:#fff;color:var(--sea);width:28px;height:28px;
+  border-radius:8px;font-weight:900;cursor:pointer;font-size:1.05rem;line-height:1}
+.prow .pbtn:hover{background:var(--lagoon);color:#fff}
+.prow .pbtn:disabled{opacity:.35;cursor:not-allowed}
+
+.note{background:var(--leaf-soft);border:1px solid #cfe6d3;border-radius:12px;padding:12px 14px;
+  font-size:.8rem;color:#2c5e3c;line-height:1.6;margin-bottom:16px}
+.note b{color:#1f4a2c}
+details.legend{margin:18px 0 6px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:0 14px;box-shadow:var(--shadow)}
+details.legend summary{cursor:pointer;padding:12px 0;font-weight:700;color:var(--sea-deep);font-size:.9rem}
+details.legend .body{padding:0 0 14px;display:flex;flex-wrap:wrap;gap:10px}
+.foot-note{text-align:center;color:var(--muted);font-size:.74rem;margin:34px 0 10px;line-height:1.7}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg class="mark" viewBox="0 0 48 48" fill="none"><path d="M24 6c-7 0-11 5-11 5s4-1 7 1c-5 1-9 6-9 6s5-2 9-1c-4 3-5 9-5 9s4-5 9-5c-2 4-1 9-1 9s3-6 7-7c0 0 2 5 0 9 0 0 5-4 5-11 3 1 6 4 6 4s-1-6-6-9c3-1 7 0 7 0s-4-5-9-6c3-2 7-1 7-1s-4-7-12-7Z" fill="#3f9d5b"/><path d="M22 30h4l2 12h-8z" fill="#a9743f"/></svg>
+    <h1>無人島牧場管家</h1>
+  </div>
+  <div class="tagline">FFXIV 無人島 · 即時天氣捕捉時程 × 牧場素材配平</div>
+</header>
+
+<div class="wrap">
+<nav class="tabs"><div class="row">
+  <button data-tab="now" class="on">現在可捕</button>
+  <button data-tab="dex">動物圖鑑</button>
+  <button data-tab="farm">牧場規劃</button>
+</div></nav>
+
+<!-- ===================== NOW ===================== -->
+<section class="view on" id="view-now">
+  <div class="sky" id="sky">
+    <div class="layer" id="skyLayer"></div>
+    <div class="sun" id="sun"></div>
+    <div class="content">
+      <div class="eorzea-label">艾歐澤亞時間</div>
+      <div class="clock" id="clock">00:00</div>
+      <div class="wmeta">
+        <div class="wnow"><span class="wi" id="wIcon"></span><div><div class="wt" id="wName">—</div><div class="ws" id="wSub">無人島天氣</div></div></div>
+        <div class="realtime">現實時間 <b id="rt">--:--:--</b><br>天氣再 <b id="wcd">--:--</b> 變化</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fc-title">天氣預報 <span class="hint">每 8 艾時（約 23 分鐘）換一次 · 點橘框為稀有天氣</span></div>
+  <div class="fc" id="forecast"></div>
+
+  <div class="sec-head"><h2>現在可以捕捉</h2><span class="count" id="liveCount"></span></div>
+  <div class="cards" id="liveList"></div>
+
+  <div class="sec-head"><h2>即將開放</h2><span class="count">依現實時間排序</span></div>
+  <div class="cards" id="soonList"></div>
+
+  <details class="legend"><summary>常駐動物（隨時可捕，共 14 種）</summary><div class="body" id="residentList"></div></details>
+</section>
+
+<!-- ===================== DEX ===================== -->
+<section class="view" id="view-dex">
+  <div class="filters">
+    <div class="search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5f727a" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>
+      <input id="q" placeholder="搜尋動物名稱或素材…" autocomplete="off">
+    </div>
+    <div class="fgroup"><span class="lbl">體型</span>
+      <button class="chip on" data-f="size" data-v="all">全部</button>
+      <button class="chip" data-f="size" data-v="小型">小型</button>
+      <button class="chip" data-f="size" data-v="中型">中型</button>
+      <button class="chip" data-f="size" data-v="大型">大型</button>
+    </div>
+    <div class="fgroup"><span class="lbl">類型</span>
+      <button class="chip on" data-f="cat" data-v="all">全部</button>
+      <button class="chip" data-f="cat" data-v="常駐">常駐</button>
+      <button class="chip" data-f="cat" data-v="限時">限時</button>
+    </div>
+    <div class="fgroup"><span class="lbl">素材</span><span id="matChips"></span></div>
+  </div>
+  <div class="cards" id="dexList"></div>
+</section>
+
+<!-- ===================== FARM ===================== -->
+<section class="view" id="view-farm">
+  <div class="pasture-top">
+    <div class="stat"><div class="k">牧場使用</div><div class="v"><span id="slotUsed">0</span><small>/20</small></div>
+      <div class="slotbar"><i id="slotBar" style="width:0%"></i></div></div>
+    <div class="stat"><div class="k">素材平衡分數</div><div class="v"><span class="score-pill" id="scorePill">—</span></div>
+      <div class="sub" id="scoreHint" style="font-size:.76rem;color:var(--muted);margin-top:6px">先加入動物開始配平</div></div>
+  </div>
+
+  <div class="note">
+    <b>機制提醒：</b>天氣與時段條件只影響「野外捕捉」；動物一旦進牧場就會穩定產出，不受天氣時間限制。每隻動物有兩種產物，配平時兩者都算。<b>配平目標是 9 種素材的覆蓋數盡量平均</b>。
+  </div>
+
+  <div class="panel">
+    <h3>素材產出覆蓋</h3>
+    <div class="sub">每條表示牧場內能產出該素材的動物數；黑線是平均目標值。</div>
+    <div id="balBars"></div>
+  </div>
+
+  <div class="btns">
+    <button class="btn primary" id="autoFull">自動配平（填滿 20 格）</button>
+    <button class="btn ghost" id="autoFill">只補滿空位</button>
+    <button class="btn ghost" id="clearAll">清空牧場</button>
+  </div>
+
+  <div class="panel">
+    <h3>目前牧場 <span style="font-weight:400;font-size:.8rem;color:var(--muted)">（點 × 移除一隻）</span></h3>
+    <div id="pastureList" class="plist"><div class="empty" style="width:100%">牧場是空的。用下面的清單或圖鑑頁加入動物吧。</div></div>
+  </div>
+
+  <div class="panel">
+    <h3>加入動物</h3>
+    <div class="sub">同種可重複放（佔多格）。按 ＋ 加入、－ 移除。</div>
+    <div class="picker" id="picker"></div>
+  </div>
+</section>
+
+<div class="foot-note">
+  天氣與時間以你裝置的時鐘即時推算（採用 FFXIV 標準天氣演算法）。<br>
+  資料整理自社群圖鑑 · 牧場配置存於本機瀏覽器。
+</div>
+</div>
+
+<script>
+/* ============ 素材 ============ */
+const MATERIALS=["尖爪","尖牙","獸毛","絨毛","乳汁","鳥蛋","羽毛","甲殼","角片"];
+const MAT_COLOR={尖爪:"#c8512f",尖牙:"#8a5a2b",獸毛:"#9b7a4f",絨毛:"#d8b35a",乳汁:"#6fb3c9",
+  鳥蛋:"#e0a23c",羽毛:"#5aa9c4",甲殼:"#4a8f6a",角片:"#7a6aa8"};
+const WEATHERS=["碧空","晴朗","陰雲","薄霧","小雨","暴雨"];
+const RARE_W=new Set(["薄霧","暴雨"]); // 5% each
+const TOOL={小型:"簡易捕獸網",中型:"簡易拘束具",大型:"簡易安眠藥"};
+
+/* ============ 動物資料 (43) ============ */
+/* n名 s體型 c類型 w天氣 t[起,迄] p[產物x2] cave洞內 loc座標 */
+const A=(n,s,c,w,t,p,cave,loc)=>({n,s,c,w,t,p,cave:!!cave,loc});
+const ANIMALS=[
+  // 常駐 小型
+  A("松鼠","小型","常駐",null,null,["尖爪","獸毛"],0,[[16.1,18.6],[24.2,21.4]]),
+  A("奧猴","小型","常駐",null,null,["尖爪","獸毛"],0,[[18.1,20.7],[20.4,25.7]]),
+  A("碧企鵝","小型","常駐",null,null,["絨毛","鳥蛋"],0,[[14.9,11.5],[18.0,11.5],[30.9,24.0]]),
+  A("礦爬蟲","小型","常駐",null,null,["尖牙","甲殼"],0,[[26.3,19.5],[29.2,18.9],[21.0,12.2]]),
+  A("迷途羊羔","小型","常駐",null,null,["絨毛","乳汁"],0,[[23.3,23.9],[20.6,23.4]]),
+  A("石英魔石精","小型","常駐",null,null,["尖牙","獸毛"],1,[[27.3,16.4],[24.1,18.7]]),
+  // 常駐 中型
+  A("渡渡鳥","中型","常駐",null,null,["羽毛","鳥蛋"],0,[[16.9,13.5],[14.4,14.6],[27.6,23.9]]),
+  A("陸行鳥","中型","常駐",null,null,["羽毛","獸毛"],0,[[13.0,13.7],[20.8,21.0]]),
+  A("小雕齒獸","中型","常駐",null,null,["尖爪","甲殼"],0,[[29.5,10.0],[30.9,11.1],[30.7,20.1]]),
+  A("島嶼雌羚羊","中型","常駐",null,null,["乳汁","獸毛"],0,[[25.8,12.6],[28.2,12.8],[21.2,18.9]]),
+  // 常駐 大型
+  A("原牛","大型","常駐",null,null,["乳汁","角片"],0,[[13.0,19.0]]),
+  A("藍背魔鳥","大型","常駐",null,null,["鳥蛋","羽毛"],0,[[27.5,29.2]]),
+  A("狂野疣豬","大型","常駐",null,null,["尖牙","角片"],0,[[17.9,15.7]]),
+  A("島嶼母山羊","大型","常駐",null,null,["乳汁","角片"],0,[[25.1,23.6]]),
+  // 限時 小型
+  A("黑羊","小型","限時","晴朗",null,["絨毛","乳汁"],0,[[20.6,23.2]]),
+  A("狐猴","小型","限時",null,[6,9],["尖爪","獸毛"],0,[[20.1,26.5]]),
+  A("魔菇","小型","限時","小雨",[15,18],["絨毛","獸毛"],0,[[18.9,27.5]]),
+  A("星點栗鼠","小型","限時",null,[9,12],["尖爪","獸毛"],0,[[15.7,19.4]]),
+  A("沙灘殼蟹","小型","限時","小雨",[0,3],["甲殼","尖爪"],0,[[17.9,12.6]]),
+  A("閃爍毛球","小型","限時","薄霧",[18,21],["絨毛","獸毛"],0,[[22.1,20.7]]),
+  A("樂園碧企鵝","小型","限時",null,[12,15],["絨毛","鳥蛋"],0,[[19.1,11.9]]),
+  A("黃色礦爬蟲","小型","限時","薄霧",null,["甲殼","尖牙"],0,[[26.8,19.3]]),
+  A("魔界花骨朵","小型","限時","陰雲",[3,6],["甲殼","尖牙"],0,[[19.3,19.1]]),
+  A("紫晶魔石精","小型","限時",null,[21,24],["獸毛","尖牙"],1,[[23.7,18.7],[28.2,16.2]]),
+  // 限時 中型
+  A("雕齒獸","中型","限時",null,[0,3],["尖爪","甲殼"],0,[[31.7,11.3]]),
+  A("猴面雀","中型","限時","晴朗",[12,15],["絨毛","尖爪"],0,[[24.9,28.2]]),
+  A("樂園虎","中型","限時","晴朗",[18,21],["尖牙","獸毛"],0,[[14.8,13.7]]),
+  A("黑陸行鳥","中型","限時","碧空",null,["羽毛","獸毛"],0,[[13.1,11.6]]),
+  A("樂園渡渡鳥","中型","限時",null,[15,18],["羽毛","鳥蛋"],0,[[16.6,11.8]]),
+  A("島嶼雄羚羊","中型","限時",null,[18,21],["獸毛","角片"],0,[[20.2,20.3]]),
+  A("阿爾科諾斯特","中型","限時","碧空",[21,24],["羽毛","鳥蛋"],0,[[23.1,30.6]]),
+  // 限時 大型
+  A("獅鷲","大型","限時","碧空",[15,18],["羽毛","尖爪"],0,[[14.7,22.6]]),
+  A("巨水牛","大型","限時","陰雲",null,["乳汁","角片"],0,[[12.2,17.5]]),
+  A("短吻鱷","大型","限時","暴雨",[6,9],["尖爪","尖牙"],0,[[17.3,24.1]]),
+  A("魔界花","大型","限時","暴雨",[21,24],["尖牙","甲殼"],0,[[28.5,24.2]]),
+  A("精金龜","大型","限時","薄霧",[12,15],["甲殼","尖爪"],0,[[31.7,14.6]]),
+  A("古菩猩猩","大型","限時","陰雲",[9,12],["尖爪","尖牙"],0,[[32.6,15.9]]),
+  A("樂園疣豬","大型","限時","暴雨",null,["角片","尖牙"],0,[[16.9,15.8]]),
+  A("無齒翼龍","大型","限時","碧空",[9,12],["尖爪","角片"],0,[[24.9,16.1]]),
+  A("巨礦妖蟲","大型","限時","晴朗",[3,6],["尖牙","甲殼"],0,[[24.2,21.6]]),
+  A("島嶼公山羊","大型","限時",null,[3,6],["絨毛","角片"],0,[[26.2,22.9]]),
+  A("黃金背魔鳥","大型","限時","小雨",null,["羽毛","鳥蛋"],0,[[31.2,28.5]]),
+  A("古怪魔石精","大型","限時","薄霧",[0,3],["尖牙","獸毛"],1,[[23.9,18.7]]),
+];
+
+/* ============ 天氣演算法 (FFXIV 標準) ============ */
+const E_HOUR=175000, E_8H=8*E_HOUR, E_DAY=24*E_HOUR;
+function weatherValue(ms){
+  const s=Math.floor(ms/1000);
+  const bell=Math.floor(s/175)%24;
+  const inc=(bell+8-(bell%8))%24;
+  let days=Math.floor(s/4200)>>>0;
+  const base=days*100+inc;
+  const a=((base<<11)^base)>>>0;
+  const b=((a>>>8)^a)>>>0;
+  return b%100;
+}
+// 無人島權重：碧空25 晴朗45 陰雲10 小雨10 薄霧5 暴雨5（依此順序累積）
+function weatherAt(ms){
+  const v=weatherValue(ms);
+  if(v<25)return"碧空"; if(v<70)return"晴朗"; if(v<80)return"陰雲";
+  if(v<90)return"小雨"; if(v<95)return"薄霧"; return"暴雨";
+}
+function eorzeaHour(ms){return Math.floor(ms/E_HOUR)%24;}
+function eorzeaHM(ms){
+  const tot=Math.floor(ms/E_HOUR);
+  const h=tot%24; const m=Math.floor((ms%E_HOUR)/(E_HOUR/60));
+  return {h,m};
+}
+
+/* 動物在 ts 是否可捕 */
+function avail(an,ts){
+  if(an.c==="常駐")return true;
+  let ok=true;
+  if(an.t){const h=eorzeaHour(ts); ok=ok&&(h>=an.t[0]&&h<an.t[1]);}
+  if(an.w){ok=ok&&(weatherAt(ts)===an.w);}
+  return ok;
+}
+/* 視窗結束的現實毫秒（僅限現在可捕的限時動物，以時段為界；純天氣以該天氣區塊結束）*/
+function windowEndMs(an,now){
+  let end=now+E_8H; // 預設找下一個天氣/時段邊界
+  if(an.t){
+    const h=now/E_HOUR%24;
+    const remEorzeaHours=an.t[1]-h;
+    end=now+remEorzeaHours*E_HOUR;
+  }
+  if(an.w){ // 天氣區塊結束
+    const blkEnd=Math.ceil(now/E_8H)*E_8H;
+    end=an.t?Math.min(end,blkEnd):blkEnd;
+  }
+  return end;
+}
+/* 下次開放現實毫秒 */
+function nextStartMs(an,now){
+  let ts=Math.ceil(now/E_HOUR)*E_HOUR;
+  for(let i=0;i<2200;i++){ if(avail(an,ts))return ts; ts+=E_HOUR; }
+  return null;
+}
+function fmtCountdown(ms){
+  if(ms<0)ms=0; const t=Math.floor(ms/1000);
+  const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;
+  if(h>0)return h+"時"+String(m).padStart(2,"0")+"分";
+  return m+"分"+String(s).padStart(2,"0")+"秒";
+}
+
+/* ============ 天氣圖示 (inline SVG) ============ */
+function wIcon(w,c){
+  c=c||"#fff";
+  const sun=`<circle cx="13" cy="11" r="6.5" fill="#ffd66b"/><g stroke="#ffd66b" stroke-width="2" stroke-linecap="round"><path d="M13 1v3M13 18v3M1 11h3M22 11h3M4.5 2.5l2 2M21.5 2.5l-2 2"/></g>`;
+  const cloud=`<path d="M9 22a5 5 0 0 1 0-10 7 7 0 0 1 13 2 4 4 0 0 1-1 8H9z" fill="${c}"/>`;
+  switch(w){
+    case"碧空":return `<svg viewBox="0 0 26 24"><circle cx="13" cy="12" r="8" fill="#ffd66b"/><g stroke="#ffd66b" stroke-width="2.2" stroke-linecap="round"><path d="M13 0v3.5M13 20.5V24M0 12h3.5M22.5 12H26M3.5 2.5l2.5 2.5M22.5 2.5l-2.5 2.5M3.5 21.5l2.5-2.5M22.5 21.5l-2.5-2.5"/></g></svg>`;
+    case"晴朗":return `<svg viewBox="0 0 26 24">${sun}<path d="M11 22a4.5 4.5 0 0 1 0-9 6 6 0 0 1 11.5 1.7A3.5 3.5 0 0 1 21 22H11z" fill="${c}"/></svg>`;
+    case"陰雲":return `<svg viewBox="0 0 26 24">${cloud}<path d="M5 17a4 4 0 0 1 .3-8 6 6 0 0 1 11 1" fill="none" stroke="${c}" stroke-width="2" opacity=".7"/></svg>`;
+    case"薄霧":return `<svg viewBox="0 0 26 24"><g stroke="${c}" stroke-width="2.4" stroke-linecap="round" opacity=".9"><path d="M3 7h20M1 12h22M4 17h18M6 21h14"/></g></svg>`;
+    case"小雨":return `<svg viewBox="0 0 26 24">${cloud}<g stroke="#bfe0ef" stroke-width="2" stroke-linecap="round"><path d="M9 21l-1 2M14 21l-1 2M19 21l-1 2"/></g></svg>`;
+    case"暴雨":return `<svg viewBox="0 0 26 24"><path d="M9 19a5 5 0 0 1 0-10 7 7 0 0 1 13 2 4 4 0 0 1-1 8H9z" fill="${c}"/><g stroke="#9fcfe6" stroke-width="2.4" stroke-linecap="round"><path d="M8 20l-2 3.5M13 20l-2 3.5M18 20l-2 3.5"/></g></svg>`;
+  }
+  return"";
+}
+const SKY={
+  碧空:["#2da8d8","#7fd0e8"], 晴朗:["#2d8fbf","#8fd3df"], 陰雲:["#5f7d8a","#9db1ba"],
+  薄霧:["#8a9aa0","#c3ced2"], 小雨:["#476374","#7f9aa8"], 暴雨:["#2c4654","#5a7382"]
+};
+
+/* ============ 卡片元件 ============ */
+function matPill(m){return `<span class="mat"><span class="dot" style="background:${MAT_COLOR[m]}"></span>${m}</span>`;}
+function condTags(an){
+  let t="";
+  if(an.cave)t+=`<span class="tag cave">🦇 洞窟內</span>`;
+  if(an.w)t+=`<span class="tag w">${wIcon(an.w,"#1b6e8c")}${an.w}</span>`;
+  if(an.t)t+=`<span class="tag t">⏰ ${String(an.t[0]).padStart(2,"0")}:00–${String(an.t[1]).padStart(2,"0")}:00</span>`;
+  if(an.c==="常駐")t+=`<span class="tag">隨時</span>`;
+  return t;
+}
+function szClass(s){return s==="小型"?"s":s==="中型"?"m":"l";}
+function animalCard(an,extra){
+  const idx=ANIMALS.indexOf(an);
+  return `<div class="acard ${extra&&extra.live?'live':''}">
+    <div class="head"><span class="nm">${an.n}</span><span class="sz ${szClass(an.s)}">${an.s}</span></div>
+    <div class="mats">${an.p.map(matPill).join("")}</div>
+    <div class="tagrow">${condTags(an)}</div>
+    <div class="foot">
+      <span class="loc">📍${an.loc[0][0]},${an.loc[0][1]}${an.loc.length>1?" +"+(an.loc.length-1):""} · ${TOOL[an.s]}</span>
+      ${extra&&extra.cd!==undefined?`<span class="countdown ${extra.cdClass||''}">${extra.cd}</span>`:`<button class="addbtn" data-add="${idx}">＋牧場</button>`}
+    </div>
+  </div>`;
+}
+
+/* ============ NOW 視圖 ============ */
+function renderNow(){
+  const now=Date.now();
+  const w=weatherAt(now);
+  const {h,m}=eorzeaHM(now);
+  document.getElementById("clock").innerHTML=String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");
+  document.getElementById("wName").textContent=w;
+  document.getElementById("wIcon").innerHTML=wIcon(w);
+  const sky=SKY[w];
+  document.getElementById("skyLayer").style.background=`linear-gradient(160deg,${sky[0]},${sky[1]})`;
+  const sun=document.getElementById("sun");
+  sun.style.opacity=(w==="碧空"||w==="晴朗")?1:0;
+  // 現實時間 + 天氣倒數
+  const d=new Date();
+  document.getElementById("rt").textContent=d.toLocaleTimeString("zh-TW",{hour12:false});
+  const blkEnd=Math.ceil(now/E_8H)*E_8H;
+  document.getElementById("wcd").textContent=fmtCountdown(blkEnd-now);
+
+  // 預報 9 格
+  let fc=""; const blk0=Math.floor(now/E_8H)*E_8H;
+  for(let i=0;i<9;i++){const bs=blk0+i*E_8H;const bw=weatherAt(bs);const eh=eorzeaHour(bs);
+    fc+=`<div class="blk ${i===0?'cur':''} ${RARE_W.has(bw)?'rare':''}">
+      <div class="et">${String(eh).padStart(2,"0")}:00</div>
+      <div class="wi">${wIcon(bw,"#7a8c93")}</div>
+      <div class="wn">${bw}</div>${RARE_W.has(bw)?'<div class="rb">稀有</div>':''}</div>`;}
+  document.getElementById("forecast").innerHTML=fc;
+
+  // 現在可捕（限時）
+  const limited=ANIMALS.filter(a=>a.c==="限時");
+  const live=limited.filter(a=>avail(a,now));
+  const liveEl=document.getElementById("liveList");
+  document.getElementById("liveCount").textContent=live.length+" 種";
+  if(live.length){
+    liveEl.innerHTML=live.map(a=>{const end=windowEndMs(a,now);
+      return animalCard(a,{live:true,cd:"剩 "+fmtCountdown(end-now),cdClass:"live"});}).join("");
+  }else liveEl.innerHTML=`<div class="empty">此刻沒有限時動物開放。看上方預報抓準下個天氣，或先抓常駐動物。</div>`;
+
+  // 即將開放（取最近 6 個未開放限時動物）
+  const soon=limited.filter(a=>!avail(a,now)).map(a=>({a,ts:nextStartMs(a,now)}))
+    .filter(o=>o.ts).sort((x,y)=>x.ts-y.ts).slice(0,6);
+  document.getElementById("soonList").innerHTML=soon.map(o=>{
+    const wait=o.ts-now; const cls=wait<10*60*1000?"soon":"";
+    return animalCard(o.a,{cd:"約 "+fmtCountdown(wait)+"後",cdClass:cls});}).join("")
+    ||`<div class="empty">—</div>`;
+}
+function renderResidents(){
+  document.getElementById("residentList").innerHTML=
+    `<div class="cards" style="width:100%">`+
+    ANIMALS.filter(a=>a.c==="常駐").map(a=>animalCard(a,{})).join("")+`</div>`;
+}
+
+/* ============ DEX 視圖 ============ */
+const filter={size:"all",cat:"all",mats:new Set(),q:""};
+function renderMatChips(){
+  document.getElementById("matChips").innerHTML=MATERIALS.map(m=>
+    `<button class="chip mat-chip" data-mat="${m}" style="--c:${MAT_COLOR[m]}">${m}</button>`).join("");
+}
+function renderDex(){
+  let list=ANIMALS.filter(a=>{
+    if(filter.size!=="all"&&a.s!==filter.size)return false;
+    if(filter.cat!=="all"&&a.c!==filter.cat)return false;
+    if(filter.mats.size&&!a.p.some(m=>filter.mats.has(m)))return false;
+    if(filter.q){const q=filter.q;if(!a.n.includes(q)&&!a.p.some(m=>m.includes(q)))return false;}
+    return true;
+  });
+  const el=document.getElementById("dexList");
+  el.innerHTML=list.length?list.map(a=>animalCard(a,{})).join(""):`<div class="empty">找不到符合條件的動物。</div>`;
+}
+
+/* ============ FARM 視圖 ============ */
+let pasture=[]; // 存 ANIMALS 索引（可重複）
+function loadPasture(){try{const s=localStorage.getItem("ffxiv_pasture");if(s)pasture=JSON.parse(s);}catch(e){}}
+function savePasture(){try{localStorage.setItem("ffxiv_pasture",JSON.stringify(pasture));}catch(e){}}
+function matCounts(list){const c={};MATERIALS.forEach(m=>c[m]=0);list.forEach(i=>ANIMALS[i].p.forEach(m=>c[m]++));return c;}
+function balanceScore(c){const v=MATERIALS.map(m=>c[m]);const mx=Math.max(...v),mn=Math.min(...v);
+  if(mx===0)return 0; return Math.round(100*(1-(mx-mn)/(mx+mn)));}
+function addAnimal(i){if(pasture.length>=20)return;pasture.push(i);savePasture();renderFarm();}
+function removeOne(i){const p=pasture.indexOf(i);if(p>-1){pasture.splice(p,1);savePasture();renderFarm();}}
+function autoBalance(keep){
+  let list=keep?pasture.slice():[];
+  while(list.length<20){
+    let bestVar=Infinity,cands=[];
+    for(let i=0;i<ANIMALS.length;i++){
+      const c=matCounts(list.concat([i]));
+      const vals=MATERIALS.map(m=>c[m]);const mean=vals.reduce((a,b)=>a+b,0)/9;
+      const v=vals.reduce((a,b)=>a+(b-mean)**2,0)/9;
+      if(v<bestVar-1e-9){bestVar=v;cands=[i];}else if(Math.abs(v-bestVar)<1e-9)cands.push(i);
+    }
+    // 在最佳群中選現有數量最少的，增加多樣性
+    cands.sort((a,b)=>list.filter(x=>x===a).length-list.filter(x=>x===b).length);
+    const top=cands.filter(i=>list.filter(x=>x===i).length===list.filter(x=>x===cands[0]).length);
+    list.push(top[Math.floor(Math.random()*top.length)]);
+  }
+  pasture=list;savePasture();renderFarm();
+}
+function renderFarm(){
+  const used=pasture.length;
+  document.getElementById("slotUsed").textContent=used;
+  document.getElementById("slotBar").style.width=(used/20*100)+"%";
+  const c=matCounts(pasture);
+  const score=balanceScore(c);
+  const pill=document.getElementById("scorePill");
+  pill.textContent=used?score:"—";
+  pill.style.background=score>=85?"var(--leaf-soft)":score>=60?"#fdeede":"#f4e0db";
+  pill.style.color=score>=85?"#2c5e3c":score>=60?"#c8512f":"#a63a22";
+  const vals=MATERIALS.map(m=>c[m]);const mx=Math.max(...vals,1);const avg=used?(used*2/9):0;
+  // 平衡建議
+  const lows=MATERIALS.filter(m=>c[m]===Math.min(...vals)&&used);
+  document.getElementById("scoreHint").innerHTML=used?
+    (score>=85?"產出很平均，讚！":`建議補強：${lows.slice(0,3).join("、")}`):"先加入動物開始配平";
+  // bars
+  document.getElementById("balBars").innerHTML=MATERIALS.map(m=>{
+    const v=c[m];const low=v===Math.min(...vals)&&used;const high=v===mx&&used&&mx>0;
+    return `<div class="balrow ${low?'low':''} ${high&&!low?'high':''}">
+      <span class="ml"><span class="dot" style="background:${MAT_COLOR[m]}"></span>${m}</span>
+      <span class="track"><i style="width:${v/mx*100}%;background:${MAT_COLOR[m]}"></i>
+        <span class="target" style="left:${avg/mx*100}%"></span></span>
+      <span class="cv">${v}</span></div>`;}).join("");
+  // pasture chips（依索引聚合數量）
+  const counts={};pasture.forEach(i=>counts[i]=(counts[i]||0)+1);
+  const keys=Object.keys(counts).map(Number).sort((a,b)=>a-b);
+  const pl=document.getElementById("pastureList");
+  pl.innerHTML=keys.length?keys.map(i=>{const a=ANIMALS[i];
+    return `<div class="pchip"><span class="pn">${a.n}</span>
+      ${counts[i]>1?`<span class="qty">×${counts[i]}</span>`:""}
+      <button class="rm" data-rm="${i}">×</button></div>`;}).join("")
+    :`<div class="empty" style="width:100%">牧場是空的。用下面的清單或圖鑑頁加入動物吧。</div>`;
+  // picker
+  renderPicker(counts);
+}
+function renderPicker(counts){
+  const groups=[["常駐 · 小型","常駐","小型"],["常駐 · 中型","常駐","中型"],["常駐 · 大型","常駐","大型"],
+    ["限時 · 小型","限時","小型"],["限時 · 中型","限時","中型"],["限時 · 大型","限時","大型"]];
+  let html="";const full=pasture.length>=20;
+  groups.forEach(([title,cat,sz])=>{
+    const rows=ANIMALS.map((a,i)=>({a,i})).filter(o=>o.a.c===cat&&o.a.s===sz);
+    html+=`<div class="pgrp">${title}</div>`;
+    rows.forEach(({a,i})=>{const q=counts[i]||0;
+      html+=`<div class="prow">
+        <span class="pn">${a.n}</span>
+        <span class="pmats">${a.p.map(m=>`<span class="pdot" style="background:${MAT_COLOR[m]}" title="${m}"></span>`).join("")}</span>
+        <button class="pbtn" data-rm="${i}" ${q?'':'disabled'}>−</button>
+        <span class="pq">${q}</span>
+        <button class="pbtn" data-add="${i}" ${full?'disabled':''}>＋</button>
+      </div>`;});
+  });
+  document.getElementById("picker").innerHTML=html;
+}
+
+/* ============ 事件 ============ */
+document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("nav.tabs button").forEach(x=>x.classList.remove("on"));
+  document.querySelectorAll("section.view").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");document.getElementById("view-"+b.dataset.tab).classList.add("on");
+  window.scrollTo({top:0,behavior:"smooth"});
+});
+// 篩選 chips
+document.querySelectorAll(".chip[data-f]").forEach(c=>c.onclick=()=>{
+  const f=c.dataset.f;document.querySelectorAll(`.chip[data-f="${f}"]`).forEach(x=>x.classList.remove("on"));
+  c.classList.add("on");filter[f==="size"?"size":"cat"]=c.dataset.v;renderDex();
+});
+document.getElementById("q").oninput=e=>{filter.q=e.target.value.trim();renderDex();};
+// 全域點擊：素材 chip / 加入 / 移除
+document.addEventListener("click",e=>{
+  const mc=e.target.closest(".mat-chip");
+  if(mc){const m=mc.dataset.mat;if(filter.mats.has(m)){filter.mats.delete(m);mc.classList.remove("on");mc.style.background="";mc.style.borderColor="";}
+    else{filter.mats.add(m);mc.classList.add("on");mc.style.background=MAT_COLOR[m];mc.style.borderColor=MAT_COLOR[m];}renderDex();return;}
+  const add=e.target.closest("[data-add]");if(add){addAnimal(+add.dataset.add);
+    if(!document.getElementById("view-farm").classList.contains("on")){add.textContent="已加入✓";setTimeout(()=>add.textContent="＋牧場",900);}return;}
+  const rm=e.target.closest("[data-rm]");if(rm){removeOne(+rm.dataset.rm);return;}
+});
+document.getElementById("autoFull").onclick=()=>autoBalance(false);
+document.getElementById("autoFill").onclick=()=>autoBalance(true);
+document.getElementById("clearAll").onclick=()=>{if(confirm("確定清空牧場？")){pasture=[];savePasture();renderFarm();}};
+
+/* ============ 初始化 ============ */
+renderMatChips();renderDex();renderResidents();loadPasture();renderFarm();renderNow();
+setInterval(renderNow,1000);
+</script>
+</body>
+</html>
